@@ -6,8 +6,9 @@ whatever text field is selected.** Fully offline, no Google services, no root.
 [![CI](https://github.com/antomanc/remote-dictation/actions/workflows/ci.yml/badge.svg)](https://github.com/antomanc/remote-dictation/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/antomanc/remote-dictation)](LICENSE)
 
-> **Early prototype.** It works end to end on the hardware below, accuracy is "decent", and
-> there is no signed release yet: you build the APK yourself.
+> **Early prototype.** It works end to end on the hardware below and got 51 of 52 words right
+> in live tests (see [Accuracy and speed](#accuracy-and-speed)), but there is no signed release
+> yet: you build the APK yourself.
 
 ## Who it is for
 
