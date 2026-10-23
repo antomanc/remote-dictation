@@ -84,7 +84,9 @@ class VoiceSessionTest {
 
         session.press()
         session.press()
+        assertTrue(session.isCapturing)
         session.release()
+        assertFalse(session.isCapturing)
         session.await(1_000)
 
         assertEquals(1, listener.results.size)

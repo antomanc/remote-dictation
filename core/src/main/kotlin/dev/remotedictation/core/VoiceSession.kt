@@ -28,6 +28,7 @@ class VoiceSession(
     }
 
     // press() and release() come from one thread (key events); the rest is per utterance.
+    @Volatile
     private var held: AtomicBoolean? = null
     private var lastCapture: Thread? = null
 
@@ -37,6 +38,10 @@ class VoiceSession(
     /** True while any utterance is still being captured or recognized. */
     val isActive: Boolean
         get() = lastWorker?.isAlive == true
+
+    /** True while the button is held, i.e. a newer utterance may be in progress. */
+    val isCapturing: Boolean
+        get() = held?.get() == true
 
     /**
      * Button down. Capture starts right away even if the previous utterance is still being

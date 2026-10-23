@@ -68,6 +68,8 @@ class DictationService : AccessibilityService(), VoiceSession.Listener {
     }
 
     override fun onResult(text: String, handled: Boolean) = when {
+        // The next phrase is already being captured: keep its "Listening" banner up.
+        session?.isCapturing == true -> Unit
         text.isEmpty() -> overlay.show(getString(R.string.status_nothing_heard), StatusOverlay.Style.INFO, hideAfterMillis = 2_000)
         handled -> overlay.hide()
         else -> overlay.show(getString(R.string.status_no_field, text), StatusOverlay.Style.INFO, hideAfterMillis = 4_000)
