@@ -5,3 +5,12 @@ local.properties
 *.iml
 .kotlin/
 captures/
+
+# AI & Project rules
+node_modules/
+.DS_Store
+dist/
+.env
+.env.*
+!.env.example
+!.env.*.example
