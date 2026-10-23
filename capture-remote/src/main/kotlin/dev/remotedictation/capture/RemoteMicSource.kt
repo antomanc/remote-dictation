@@ -29,7 +29,7 @@ class RemoteMicSource(
             sampleRate,
             CHANNEL,
             ENCODING,
-            maxOf(minBuffer, sampleRate), // at least 0.5 s of 16-bit audio
+            maxOf(minBuffer, sampleRate * 4), // 2 s of 16-bit audio, slack for a busy CPU
         )
         if (audioRecord.state != AudioRecord.STATE_INITIALIZED) {
             audioRecord.release()

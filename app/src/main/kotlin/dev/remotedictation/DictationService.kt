@@ -13,6 +13,7 @@ import dev.remotedictation.core.Mode
 import dev.remotedictation.core.Router
 import dev.remotedictation.core.VoiceSession
 import dev.remotedictation.stt.vosk.VoskEngine
+import java.io.File
 import kotlin.concurrent.thread
 
 /**
@@ -31,8 +32,9 @@ class DictationService : AccessibilityService(), VoiceSession.Listener {
         thread(name = "vosk-load") {
             try {
                 val engine = VoskEngine.load(this)
+                val mic = RemoteMicSource(getSystemService(AudioManager::class.java))
                 session = VoiceSession(
-                    source = RemoteMicSource(getSystemService(AudioManager::class.java)),
+                    source = if (BuildConfig.DEBUG) UtteranceRecorder(mic, File(filesDir, "utterances")) else mic,
                     engine = engine,
                     router = Router(mapOf(Mode.DICTATE to TypeIntoFocusedField(this))),
                     listener = this,
