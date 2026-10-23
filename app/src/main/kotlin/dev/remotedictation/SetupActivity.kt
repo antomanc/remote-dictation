@@ -8,9 +8,10 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Button
+import android.widget.RadioGroup
 import android.widget.TextView
 
-/** TV-friendly setup: grant the microphone and enable the accessibility service. */
+/** TV-friendly setup: grant the microphone, enable the accessibility service, pick the engine. */
 class SetupActivity : Activity() {
 
     private lateinit var micStatus: TextView
@@ -26,6 +27,13 @@ class SetupActivity : Activity() {
         micButton.setOnClickListener { requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 1) }
         findViewById<Button>(R.id.service_button).setOnClickListener {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
+        findViewById<RadioGroup>(R.id.engine_group).apply {
+            check(if (EngineChoice.current(context) == EngineChoice.WHISPER) R.id.engine_whisper else R.id.engine_vosk)
+            // The service sees the change and swaps the model.
+            setOnCheckedChangeListener { _, id ->
+                EngineChoice.save(context, if (id == R.id.engine_whisper) EngineChoice.WHISPER else EngineChoice.VOSK)
+            }
         }
     }
 

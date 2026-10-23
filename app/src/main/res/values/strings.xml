@@ -9,9 +9,13 @@
     <string name="setup_service_ok">✓ Remote Dictation is turned on</string>
     <string name="setup_service_missing">✗ Turn on Remote Dictation in Accessibility settings</string>
     <string name="setup_service_button">Open Accessibility settings</string>
+    <string name="setup_engine_title">Speech engine</string>
+    <string name="setup_engine_whisper">Whisper: more accurate, types a moment after you release</string>
+    <string name="setup_engine_vosk">Vosk: shows words as you speak, makes more mistakes</string>
 
     <string name="status_listening">● Listening…</string>
     <string name="status_loading">Loading the speech model, try again in a moment</string>
+    <string name="status_transcribing">Transcribing…</string>
     <string name="status_model_failed">Remote Dictation could not load its speech model</string>
     <string name="status_no_permission">Open Remote Dictation to allow the microphone</string>
     <string name="status_nothing_heard">Didn\'t catch that</string>

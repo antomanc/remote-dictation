@@ -34,9 +34,12 @@ class VoiceSessionTest {
     }
 
     private class Recording : VoiceSession.Listener {
+        val events = CopyOnWriteArrayList<String>()
         val results = CopyOnWriteArrayList<Pair<String, Boolean>>()
         val errors = CopyOnWriteArrayList<Throwable>()
-        override fun onResult(text: String, handled: Boolean) { results += text to handled }
+        override fun onListening() { events += "listening" }
+        override fun onCaptured() { events += "captured" }
+        override fun onResult(text: String, handled: Boolean) { results += text to handled; events += "result" }
         override fun onError(error: Throwable) { errors += error }
     }
 
@@ -60,6 +63,19 @@ class VoiceSessionTest {
         assertEquals(listOf("w3 w5" to true), listener.results)
         assertTrue(source.opened && source.closed)
         assertTrue(engine.closed)
+    }
+
+    @Test
+    fun captureEndIsReportedBeforeTheResult() {
+        val listener = Recording()
+        val session = session(FakeSource(3), FakeEngine(), mutableListOf(), listener)
+
+        session.press()
+        Thread.sleep(20)
+        session.release()
+        session.await(1_000)
+
+        assertEquals(listOf("listening", "captured", "result"), listener.events)
     }
 
     @Test

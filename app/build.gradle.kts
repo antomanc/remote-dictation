@@ -6,6 +6,7 @@ plugins {
 android {
     namespace = "dev.remotedictation"
     compileSdk = 35
+    ndkVersion = "27.3.13750724" // also used to strip the native libraries
 
     defaultConfig {
         applicationId = "dev.remotedictation"
@@ -23,10 +24,13 @@ android {
     }
     kotlinOptions.jvmTarget = "17"
     buildFeatures.buildConfig = true
+    // whisper.cpp streams its model straight out of the APK, which is fast only when uncompressed.
+    androidResources.noCompress += "bin"
 }
 
 dependencies {
     implementation(project(":capture-remote"))
     implementation(project(":stt-vosk"))
+    implementation(project(":stt-whisper"))
     implementation(project(":action-type-text"))
 }

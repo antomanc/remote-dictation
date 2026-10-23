@@ -23,6 +23,9 @@ class VoiceSession(
     interface Listener {
         fun onListening() {}
         fun onPartial(text: String) {}
+
+        /** The button was released and all audio captured; this utterance's result comes next. */
+        fun onCaptured() {}
         fun onResult(text: String, handled: Boolean) {}
         fun onError(error: Throwable) {}
     }
@@ -114,6 +117,7 @@ class VoiceSession(
             } finally {
                 source.close()
             }
+            listener.onCaptured()
             chunks.put(Chunk.End)
         } catch (e: Exception) {
             chunks.put(Chunk.Failed(e))

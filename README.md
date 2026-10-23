@@ -23,13 +23,15 @@ probably work; reports welcome.
 
 ## Features
 
-- **Push-to-talk:** hold the voice button, a "Listening…" banner shows the words as they are
-  recognized, release to type them.
+- **Push-to-talk:** hold the voice button, speak, release: the words are typed about two
+  seconds later.
 - **Types anywhere:** appends to the focused text field in any app (browser, store search,
   streaming apps) through an accessibility service.
-- **Offline and private:** speech recognition runs on the stick with
-  [Vosk](https://alphacephei.com/vosk/). The app asks for the microphone only; it does not
-  even have the Internet permission.
+- **Accurate and offline:** speech recognition runs on the stick with
+  [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (OpenAI's Whisper base.en). The app
+  asks for the microphone only; it does not even have the Internet permission.
+- **Two engines:** Whisper by default, or [Vosk](https://alphacephei.com/vosk/) on the setup
+  screen if you prefer seeing the words while you speak, at the cost of more mistakes.
 - **Fast phrases:** start the next phrase while the previous one is still being recognized;
   they are typed in order.
 
@@ -48,7 +50,8 @@ probably work; reports welcome.
    ```
 3. Select a text field, hold the voice button and talk.
 
-The speech model is English for now (`vosk-model-small-en-us-0.15`, bundled in the APK).
+The speech models are English for now and bundled in the APK, which is why it is about
+150 MB.
 
 ## How it works
 
@@ -60,16 +63,17 @@ therefore only flows while the button is down: ideal for push-to-talk, and the r
 always-listening voice keyboards stall on this hardware.
 
 ```
-Voice button ─► capture-remote ─► stt-vosk ─► Router ─► action-type-text
- (hold/release)  (AudioRecord,     (offline    (Mode →    (accessibility:
-                  own thread)       Vosk)       action)     append to focused field)
+Voice button ─► capture-remote ─► stt-whisper ─► Router ─► action-type-text
+ (hold/release)  (AudioRecord,     or stt-vosk    (Mode →    (accessibility:
+                  own thread)      (offline)       action)     append to focused field)
 ```
 
 | Module | What it is |
 |---|---|
 | `core` | Plain Kotlin: the `AudioSource`, `SpeechEngine`/`Recognizer` and `TranscriptAction` contracts, the `Router`, and `VoiceSession`, the push-to-talk state machine. Unit tested. |
 | `capture-remote` | `AudioSource` reading the remote's mic with `AudioRecord`, never blocking. |
-| `stt-vosk` | `SpeechEngine` using Vosk. The model is downloaded and hash-checked at build time and bundled in the APK. |
+| `stt-whisper` | `SpeechEngine` using whisper.cpp, compiled from a pinned release with the NDK. The model (`base.en` q8_0) is downloaded and hash-checked at build time and bundled in the APK. |
+| `stt-vosk` | `SpeechEngine` using Vosk, with the same download-and-bundle approach for its model. |
 | `action-type-text` | `TranscriptAction` appending the transcript to the focused text field. |
 | `app` | The accessibility service (button handling, status banner) and a TV setup screen. |
 
@@ -79,30 +83,30 @@ of each phrase. New speech engines or actions are new modules implementing a `co
 the `Router` maps a `Mode` to its action, so another mode (for example an assistant) can be
 added without touching dictation.
 
-## Accuracy
+## Accuracy and speed
 
-Measured on real recordings from the remote (debug builds save each utterance as a WAV), word
-error rate on the PC, lower is better:
+Measured on a Fire TV Stick (`sheldon`) with real recordings from its remote; word error rate,
+lower is better, and the wait between releasing the button and the text appearing:
 
-| Engine | Size | WER |
-|---|---|---|
-| Vosk small en-us 0.15 (**current**) | 40 MB | 26% |
-| Vosk en-us 0.22 lgraph | 128 MB | 22% |
-| Whisper tiny.en | 75 MB | 22% |
-| Whisper base.en | 142 MB | 8% |
-| Whisper small.en | 466 MB | 0% |
+| Engine | Model size | WER | Wait after release |
+|---|---|---|---|
+| **Whisper base.en q8_0 (default)** | 82 MB | 2% | 1.6–2.8 s |
+| Vosk small en-us 0.15 | 40 MB | 26% | none (words appear while you speak) |
 
-A handful of short phrases, so treat these as a rough ranking. Typical misses today: "jazz" →
-"just", "Netflix" → "net flicks".
+Whisper was dictated live twice (52 words, one miss: "jazz" → "just"); Vosk was scored on the
+same phrases. Getting Whisper this fast on a 32-bit stick took a few tricks, see
+[ADR 2](docs/adr/0002-whisper-cpp-as-default-engine.md). `tools/bench-whisper.py` measures
+other models on your own recordings.
 
 ## Build
 
-Needs JDK 21 and the Android SDK (platform 35). With [mise](https://mise.jdx.dev/) the JDK and
-Gradle versions come from `mise.toml`.
+Needs JDK 21 and the Android SDK (platform 35). Gradle installs the NDK and CMake versions it
+needs for whisper.cpp if the SDK licences are accepted. With [mise](https://mise.jdx.dev/) the
+JDK and Gradle versions come from `mise.toml`.
 
 ```bash
 echo "sdk.dir=$HOME/Android/Sdk" > local.properties
-mise exec -- ./gradlew :core:test :app:assembleDebug
+mise exec -- ./gradlew :core:test :stt-whisper:testDebugUnitTest :app:assembleDebug
 ```
 
 Debug builds keep the last 20 utterances as WAV files, handy for comparing engines:
@@ -113,8 +117,7 @@ adb exec-out run-as dev.remotedictation ls files/utterances
 
 ## Roadmap
 
-- [ ] **Whisper engine** (`stt-whisper`, whisper.cpp): check that base.en is fast enough on the
-      stick's 32-bit Cortex-A53, then make it selectable.
+- [x] **Whisper engine** (`stt-whisper`, whisper.cpp base.en), now the default.
 - [ ] More languages (Italian first) with a model picker on the setup screen.
 - [ ] Signed release APK on GitHub Releases, then F-Droid / IzzyOnDroid.
 - [ ] Optional on-device assistant mode (e.g. double-press and hold), as a separate `Mode`.
@@ -127,6 +130,8 @@ Agent setup (`AGENTS.md`, skills) was bootstrapped with
 
 ## License
 
-[Apache License 2.0](LICENSE). Bundles the Vosk library and the `vosk-model-small-en-us-0.15`
-model (Apache 2.0, [Alpha Cephei](https://alphacephei.com/vosk/)) and JNA (Apache 2.0). The
+[Apache License 2.0](LICENSE). Bundles whisper.cpp (MIT, [ggml-org](https://github.com/ggml-org/whisper.cpp)),
+OpenAI's Whisper base.en model weights in ggml format (MIT), the Vosk library and the
+`vosk-model-small-en-us-0.15` model (Apache 2.0, [Alpha Cephei](https://alphacephei.com/vosk/))
+and JNA (Apache 2.0). The
 banner icon is Google's Material "mic" icon (Apache 2.0).

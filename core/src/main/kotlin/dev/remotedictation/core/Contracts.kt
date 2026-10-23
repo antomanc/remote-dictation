@@ -17,9 +17,14 @@ interface AudioSource {
     fun close()
 }
 
-/** Turns audio into text. Implementations may be slow to create (model loading). */
-interface SpeechEngine {
+/**
+ * Turns audio into text. Implementations may be slow to create (model loading); [close] frees
+ * the model once no recognizer is in use.
+ */
+interface SpeechEngine : AutoCloseable {
     fun newRecognizer(sampleRate: Int): Recognizer
+
+    override fun close() {}
 }
 
 /** One utterance worth of recognition state. */

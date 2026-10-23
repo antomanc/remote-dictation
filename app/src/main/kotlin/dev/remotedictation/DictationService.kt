@@ -2,6 +2,7 @@ package dev.remotedictation
 
 import android.Manifest
 import android.accessibilityservice.AccessibilityService
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.util.Log
@@ -11,10 +12,10 @@ import dev.remotedictation.action.typetext.TypeIntoFocusedField
 import dev.remotedictation.capture.RemoteMicSource
 import dev.remotedictation.core.Mode
 import dev.remotedictation.core.Router
+import dev.remotedictation.core.SpeechEngine
 import dev.remotedictation.core.VoiceSession
-import dev.remotedictation.stt.vosk.VoskEngine
 import java.io.File
-import kotlin.concurrent.thread
+import java.util.concurrent.Executors
 
 /**
  * Holds the voice pipeline for as long as the accessibility service is enabled.
@@ -24,25 +25,53 @@ class DictationService : AccessibilityService(), VoiceSession.Listener {
 
     private lateinit var overlay: StatusOverlay
 
+    /** Loads and swaps engines one at a time, off the main thread. */
+    private val loader = Executors.newSingleThreadExecutor()
+
     @Volatile
     private var session: VoiceSession? = null
+    private var engine: SpeechEngine? = null
+
+    @Volatile
+    private var engineChoice: EngineChoice? = null
+
+    // Kept in a field: SharedPreferences only holds listeners weakly.
+    private val settingsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> loadEngine() }
 
     override fun onServiceConnected() {
         overlay = StatusOverlay(this)
-        thread(name = "vosk-load") {
-            try {
-                val engine = VoskEngine.load(this)
-                val mic = RemoteMicSource(getSystemService(AudioManager::class.java))
-                session = VoiceSession(
-                    source = if (BuildConfig.DEBUG) UtteranceRecorder(mic, File(filesDir, "utterances")) else mic,
-                    engine = engine,
-                    router = Router(mapOf(Mode.DICTATE to TypeIntoFocusedField(this))),
-                    listener = this,
-                )
-            } catch (e: Exception) {
-                Log.e(TAG, "Could not load the speech model", e)
-                overlay.show(getString(R.string.status_model_failed), StatusOverlay.Style.ERROR)
-            }
+        EngineChoice.preferences(this).registerOnSharedPreferenceChangeListener(settingsListener)
+        loadEngine()
+    }
+
+    /** Loads the engine picked on the setup screen, first unloading the previous one: the stick has little RAM. */
+    private fun loadEngine() = loader.execute {
+        val choice = EngineChoice.current(this)
+        if (choice == engineChoice) return@execute
+        val switching = engineChoice != null
+        session?.let { previous ->
+            session = null
+            previous.release()
+            previous.await()
+        }
+        engine?.close()
+        engine = null
+        engineChoice = null
+        if (switching) overlay.show(getString(R.string.status_loading), StatusOverlay.Style.INFO)
+        try {
+            val loaded = choice.load(this).also { engine = it }
+            val mic = RemoteMicSource(getSystemService(AudioManager::class.java))
+            session = VoiceSession(
+                source = if (BuildConfig.DEBUG) UtteranceRecorder(mic, File(filesDir, "utterances")) else mic,
+                engine = loaded,
+                router = Router(mapOf(Mode.DICTATE to TypeIntoFocusedField(this))),
+                listener = this,
+            )
+            engineChoice = choice
+            if (switching) overlay.hide()
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not load the $choice speech model", e)
+            overlay.show(getString(R.string.status_model_failed), StatusOverlay.Style.ERROR)
         }
     }
 
@@ -67,6 +96,13 @@ class DictationService : AccessibilityService(), VoiceSession.Listener {
         if (text.isNotEmpty()) overlay.show(text, StatusOverlay.Style.LISTENING)
     }
 
+    override fun onCaptured() {
+        // Whisper only starts once the button is up; say so instead of leaving "Listening" on screen.
+        if (engineChoice?.streamsPartials == false && session?.isCapturing != true) {
+            overlay.show(getString(R.string.status_transcribing), StatusOverlay.Style.INFO)
+        }
+    }
+
     override fun onResult(text: String, handled: Boolean) = when {
         // The next phrase is already being captured: keep its "Listening" banner up.
         session?.isCapturing == true -> Unit
@@ -87,7 +123,9 @@ class DictationService : AccessibilityService(), VoiceSession.Listener {
     }
 
     override fun onDestroy() {
+        EngineChoice.preferences(this).unregisterOnSharedPreferenceChangeListener(settingsListener)
         session?.release()
+        loader.shutdown()
         overlay.hide()
         super.onDestroy()
     }

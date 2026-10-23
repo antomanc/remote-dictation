@@ -19,7 +19,7 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v6
       - name: Unit tests and debug APK
-        run: ./gradlew :core:test :app:assembleDebug
+        run: ./gradlew :core:test :stt-whisper:testDebugUnitTest :app:assembleDebug
       - uses: actions/upload-artifact@v7
         with:
           name: remote-dictation-debug-apk

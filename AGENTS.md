@@ -15,14 +15,17 @@ hardware facts it relies on.
 - The remote only streams audio while the button is held: `AudioSource.read` must never block,
   and capture must never share a thread with recognition (the recognizer is slower than real
   time on the stick, and a starved `AudioRecord` silently drops audio).
+- Only one speech engine is loaded at a time (`DictationService.loadEngine`): the stick has ~900 MB
+  of RAM and Whisper alone needs ~150 MB. Timings taken while another model is resident are skewed by swap.
 - Never commit broken builds, failed tests, or unverified changes.
 
 ## Essential Commands
 Tool versions (JDK 21, Gradle) come from `mise.toml`; the Android SDK path goes in `local.properties`.
-- Unit tests: `mise exec -- ./gradlew :core:test`
-- Debug APK: `mise exec -- ./gradlew :app:assembleDebug` (downloads and hash-checks the Vosk model on first build)
+- Unit tests: `mise exec -- ./gradlew :core:test :stt-whisper:testDebugUnitTest`
+- Debug APK: `mise exec -- ./gradlew :app:assembleDebug` (downloads and hash-checks whisper.cpp and both models on first build; needs the NDK version pinned in `stt-whisper/build.gradle.kts`)
 - Install on the TV: `adb connect <tv-ip>:5555 && adb install -r app/build/outputs/apk/debug/app-debug.apk`
-- Logs: `adb logcat -s RemoteDictation VoskAPI`
+- Logs: `adb logcat -s RemoteDictation VoskAPI` (Whisper logs how long each phrase took)
+- Benchmark Whisper models on the device: `tools/bench-whisper.py` (stop the app first, it holds a model in RAM)
 - Debug builds keep the last 20 utterances as WAVs: `adb exec-out run-as dev.remotedictation ls files/utterances`
 
 ## Testing on the device

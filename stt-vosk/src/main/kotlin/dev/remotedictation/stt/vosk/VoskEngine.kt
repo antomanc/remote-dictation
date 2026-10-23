@@ -14,6 +14,8 @@ class VoskEngine private constructor(private val model: Model) : SpeechEngine {
     override fun newRecognizer(sampleRate: Int): Recognizer =
         VoskRecognizer(org.vosk.Recognizer(model, sampleRate.toFloat()))
 
+    override fun close() = model.close()
+
     companion object {
         private const val ASSET_DIR = "vosk-model"
 

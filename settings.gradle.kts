@@ -16,4 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "remote-dictation"
 
-include(":core", ":capture-remote", ":stt-vosk", ":action-type-text", ":app")
+include(":core", ":capture-remote", ":stt-vosk", ":stt-whisper", ":action-type-text", ":app")
