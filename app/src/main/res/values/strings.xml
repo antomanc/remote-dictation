@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">Remote Dictation</string>
+    <string name="service_description">Hold the voice button on your remote and speak to type into the selected text field. Recognition runs offline on this device.</string>
+
+    <string name="setup_intro">Hold the voice (Alexa) button on the remote, speak, then release to type into the selected text field. Everything runs offline on this TV.</string>
+    <string name="setup_mic_ok">✓ Microphone allowed</string>
+    <string name="setup_mic_missing">✗ Microphone not allowed yet</string>
+    <string name="setup_mic_button">Allow microphone</string>
+    <string name="setup_service_ok">✓ Remote Dictation is turned on</string>
+    <string name="setup_service_missing">✗ Turn on Remote Dictation in Accessibility settings</string>
+    <string name="setup_service_button">Open Accessibility settings</string>
+
+    <string name="status_listening">● Listening…</string>
+    <string name="status_loading">Loading the speech model, try again in a moment</string>
+    <string name="status_model_failed">Remote Dictation could not load its speech model</string>
+    <string name="status_no_permission">Open Remote Dictation to allow the microphone</string>
+    <string name="status_nothing_heard">Didn\'t catch that</string>
+    <string name="status_no_field">No text field selected. Heard: %1$s</string>
+</resources>
