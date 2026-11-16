@@ -44,12 +44,6 @@
         ]
       },
       {
-        "package": "dietrichgebert/ponytail",
-        "skills": [
-          "ponytail"
-        ]
-      },
-      {
         "package": "multica-ai/andrej-karpathy-skills",
         "skills": [
           "karpathy-guidelines"
@@ -70,7 +64,7 @@
     ]
   },
   "codebase": {
-    "trail": true
+    "trail": false
   },
   "browser": {
     "visualAgent": false,
@@ -83,12 +77,13 @@
     "ci": false
   },
   "capabilities": [
-    "trail",
     "pocock",
-    "ponytail",
     "karpathy-guidelines",
     "humanizer",
     "agent-device",
     "native"
+  ],
+  "disabledCapabilities": [
+    "trail"
   ]
 }
